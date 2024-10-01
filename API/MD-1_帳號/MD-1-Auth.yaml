@@ -1,0 +1,356 @@
+openapi: "3.0.3"
+info:
+  title: MD-1-Auth 帳號身分驗證 API
+  description: |
+    身分驗證相關API。
+    
+    ## API清單：
+    * MD-1-Auth-SignIn 身分驗證-登入。
+    * MD-1-Auth-SignOut 身分驗證-登出。
+    * MD-1-Auth-Token 身分驗證-取得及刷新token。
+    
+    ## 非200狀態回應說明
+    目前定義的異常狀態如下，以下狀態於各API回應內容格式皆相同，因此各API預設只描述正常 200 的回應情況。
+    * 請求格式錯誤。 http status code 400。
+    * 指定的錯誤訊息或是缺少參數。 http status code 401。
+    * 操作權限不足。 http status code 403。
+    * 請求的資源不存在。 http status code 404。
+    * 伺服端錯誤。 http status code 500。
+  version: "1.0"
+servers:
+  - url: "{baseUrl}/star/api/auth/{version}"
+    variables:
+      baseUrl:
+        description: 主機網址
+        default: 'localhost:8086'
+      version:
+        description: 版號
+        default: "v1"
+paths:
+  /sign-in:
+    post:
+      tags:
+        - MD-1-Auth
+      summary: MD-1-Auth-SignIn
+      description: |
+        身分驗證-登入。  
+        若身分驗證已完成為已登入狀態。 回應 code 0。  
+        若為未登入狀態。 回應 code 2005。  
+        若為token已過期狀態。 回應 code 2007。
+      operationId: MD-1-Auth-SignIn
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInReq'
+      responses:
+        '200':
+          description: 正常執行完成。
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SignInOkResp'
+  /sign-out:
+    get:
+      tags:
+        - MD-1-Auth
+      summary: MD-1-Auth-SignOut
+      description: |
+        身分驗證-登出。  
+        呼叫登出API前，前端程式應先清除 user-agent localStorage 中保存的登入資訊。  
+        後端程式應先清除本身 session 中保存的 token 資訊。
+      operationId: MD-1-Auth-SignOut
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/EmptyResponse'
+  /token:
+    post:
+      tags:
+        - MD-1-Auth
+      summary: MD-1-Auth-Token
+      description: |
+        身分驗證-取得或刷新token。  
+        若正常回應token，回應 code 0。  
+        若無法正常回應token，回應 code 2005 (登入資訊有誤，session 驗證失敗)。
+      operationId: MD-1-Auth-Token
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/TokenReq'
+                - $ref: '#/components/schemas/RefreshTokenReq'
+      responses:
+        '200':
+          description: 正常執行完成。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RespBase'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TokenResp'
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    IdTokenBase:
+      description: 代表身分的 id_token 基本欄位
+      type: object
+      properties:
+        sub:
+          description: subject 用戶的唯一標識符
+          type: string
+        exp:
+          description: expiration time 令牌過期的時間戳
+          type: integer
+          format: int64
+        iat:
+          description: issued at 令牌簽發的時間戳
+          type: integer
+          format: int64
+        account:
+          description: 用戶的帳號
+          type: string
+        name:
+          description: 用戶的全名
+          type: string
+        email:
+          description: 用戶的電子郵件
+          type: string
+        mobile:
+          description: 用戶的手機門號
+          type: string
+        roleUid:
+          description: 權限角色-鍵值。
+          type: string
+          format: uuid
+        roleName:
+          description: 權限角色-名稱
+          type: string
+    IdToken:
+      description: 代表身分的 id_token
+      allOf:
+        - $ref: '#/components/schemas/IdTokenBase'
+        - type: object
+          properties:
+            iss:
+              description: issuer 發行令牌的服務器的URL
+              type: string
+            aud:
+              description: audience 令牌的預期接收者，通常是客戶端應用程序的ID
+              type: string
+            auth_time:
+              description: 用戶完成身份驗證的時間戳
+              type: integer
+              format: int64
+    AccessTokenBase:
+      description: 代表授權的 access_token 基本欄位
+      type: object
+      properties:
+        sub:
+          description: subject 用戶的唯一標識符
+          type: string
+        exp:
+          description: expiration time 令牌過期的時間戳
+          type: integer
+          format: int64
+        iat:
+          description: issued at 令牌簽發的時間戳
+          type: integer
+          format: int64
+        permissions:
+          description: 被指派的功能權限
+          type: array
+          items:
+            description: 功能權限項目代碼。代碼另詳相關文件。
+            type: string
+    AccessToken:
+      description: 代表授權的 access_token
+      allOf:
+        - $ref: '#/components/schemas/AccessTokenBase'
+        - type: object
+          properties:
+            iss:
+              description: issuer 發行令牌的服務器的URL
+              type: string
+            aud:
+              description: audience 令牌的預期接收者，通常是API的URL
+              type: string
+    SignInReq:
+      description: 身分驗證-登入-請求參數
+      required:
+        - account
+        - password
+        - codeChallenge
+      type: object
+      properties:
+        account:
+          description: 帳號。
+          type: string
+        password:
+          description: 密碥。
+          type: string
+        codeChallenge:
+          description: |
+            挑戰代碼(code challenge), 將 驗證代碼(code verifier) 以 SHA-256 運算後再進行 Base64URL 編碼。  
+            code verifier 為長度 128 字節的隨機數。 code challenge 的長度為 43 字節。  
+            code verifier 與 code challenge 必需是批配的，且應為一次性使用。
+          type: string
+    SignInOkResp:
+      description: 身分驗證成功的回應內容。 code值為0。
+      properties:
+        code:
+          type: integer
+          description: 0 代表身分驗證登入成功。
+          default: 0
+        message:
+          type: string
+          description: 訊息
+    TokenReq:
+      description: 取得token-請求參數。
+      required:
+        - grantType
+        - codeVerifier
+      type: object
+      properties:
+        grantType:
+          description: 授權類型。帶入 authorizationCode 代表請求授權令牌。
+          type: string
+          example: authorizationCode
+        codeVerifier:
+          description: |
+            驗證代碼(code verifier)。 code verifier 為長度 128 字節的隨機數。  
+            code verifier 與 code challenge 必需是批配的，且應為一次性使用。
+          type: string
+    RefreshTokenReq:
+      description: 刷新token-請求參數。
+      required:
+        - grantType
+        - refreshToken
+      type: object
+      properties:
+        grantType:
+          description: 授權類型。帶入 refreshToken 代表刷新授權令牌。
+          type: string
+          example: refreshToken
+        refreshToken:
+          description: 登入成功後取得的`refreshToken`。
+          type: string
+    TokenResp:
+      description: 取得token-回應內容
+      type: object
+      properties:
+        idToken:
+          description: id_token
+          allOf:
+            - $ref: '#/components/schemas/IdTokenBase'
+        accessToken:
+          description: access_token
+          allOf:
+            - $ref: '#/components/schemas/AccessTokenBase'
+        refreshToken:
+          description: refresh_token
+          type: string
+          maxLength: 32
+    ResourceEntity:
+      description: 資源檔案，基本欄位。
+      type: object
+      properties:
+        uid:
+          description: 資源鍵值
+          type: string
+          format: uuid
+        name:
+          description: 資源檔案名稱
+          type: string
+        linkUrl:
+          description: 資源檔案網址
+          type: string
+    RespBase:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: |
+            錯誤代碼: 
+            * `0` : 成功
+            * `1xxx` : 參數錯誤
+            * `2xxx` : 權限不合法或資料不存在
+            * `3xxx` : 系統異常
+        message:
+          type: string
+          description: 錯誤訊息
+  parameters:
+    noCacheHeader:
+      name: Cache-Control
+      in: header
+      required: true
+      schema:
+        type: string
+        default: no-cache
+    jsonContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        default: application/json
+  responses:
+    EmptyResponse:
+      description: 正常執行完成，只回應 code, message。
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/RespBase'
+    400ErrorResponse:
+      description: 請求格式錯誤。 http status code 400。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    401ErrorResponse:
+      description: 缺少 ApiKey, AccessToken 或是驗證失敗。 http status code 401。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    403ErrorResponse:
+      description: 操作權限不足。 http status code 403。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    404ErrorResponse:
+      description: 請求的資源不存在。 http status code 404。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    500ErrorResponse:
+      description: 伺服端錯誤。 http status code 500。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+

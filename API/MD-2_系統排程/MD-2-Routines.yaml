@@ -1,0 +1,598 @@
+openapi: "3.0.3"
+info:
+  title: MD-2-Routines 系統排程管理 API
+  description: |
+    系統排程服務模組。排程設定及查詢 API。
+    
+    ## API清單：
+    * MD-2-Routines-List 系統排程-查詢列表
+    * MD-2-Routines-Log-List 系統排程-觸發執行-查詢列表
+    * MD-2-Routines-Setup-Get 系統排程-觸發設定(含停啟用及通知Email)-查詢單筆
+    * MD-2-Routines-Setup-Update 系統排程-觸發設定(含停啟用及通知Email)
+    * MD-2-Routines-ManualTrigger-Create 系統排程-手動觸發
+    
+    ## 非200狀態回應說明
+    目前定義的異常狀態如下，以下狀態於各API回應內容格式皆相同，因此各API預設只描述正常 200 的回應情況。
+    * 請求格式錯誤。 http status code 400。
+    * 指定的錯誤訊息或是缺少參數。 http status code 401。
+    * 操作權限不足。 http status code 403。
+    * 請求的資源不存在。 http status code 404。
+    * 伺服端錯誤。 http status code 500。
+  version: "1.0"
+servers:
+  - url: "{baseUrl}/star/api/{version}"
+    variables:
+      baseUrl:
+        description: 主機網址
+        default: 'localhost:8086'
+      version:
+        description: 版號
+        default: "v1"
+paths:
+  /list:
+    post:
+      tags:
+        - MD-2-Routines
+      summary: MD-2-Routines-List
+      description: 系統排程-查詢列表
+      operationId: MD-2-Routines-List
+#      security:
+#        - bearerAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutineListReq'
+      responses:
+        '200':
+          description: 正常執行完成。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RespBase'
+                  - type: object
+                    properties:
+                      paging:
+                        $ref: '#/components/schemas/Paging'
+                      data:
+                        description: 回應資料
+                        type: array
+                        items:
+                          - $ref: '#/components/schemas/RoutineListResp'
+  /log/list:
+    post:
+      tags:
+        - MD-2-Routines
+      summary: MD-2-Routines-Log-List
+      description: 系統排程-觸發執行-查詢列表
+      operationId: MD-2-Routines-Log-List
+#      security:
+#        - bearerAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutineLogListReq'
+      responses:
+        '200':
+          description: 正常執行完成。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RespBase'
+                  - type: object
+                    properties:
+                      paging:
+                        $ref: '#/components/schemas/Paging'
+                      data:
+                        description: 回應資料
+                        type: array
+                        items:
+                          - $ref: '#/components/schemas/RoutineLogListResp'
+  /setup:
+    get:
+      tags:
+        - MD-2-Routines
+      summary: MD-2-Routines-Setup-Get
+      description: 系統排程-觸發設定(含停啟用及通知Email)-查詢單筆
+      operationId: MD-2-Routines-Setup-Get
+#      security:
+#        - bearerAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+        - $ref: '#/components/parameters/uidParam'
+      responses:
+        '200':
+          description: 正常執行完成。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RespBase'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RoutineSetupGetResp'
+  /setup/update:
+    post:
+      tags:
+        - MD-2-Routines
+      summary: MD-2-Routines-Setup-Update
+      description: 系統排程-觸發設定(含停啟用及通知Email)
+      operationId: MD-2-Routines-Setup-Update
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutineSetupUpdateReq'
+      responses:
+        '200':
+          $ref: '#/components/responses/SimpleResponse'
+  /manual:
+    post:
+      tags:
+        - MD-2-Routines
+      summary: MD-2-Routines-ManualTrigger-Create
+      description: 系統排程-手動觸發
+      operationId: MD-2-Routines-ManualTrigger-Create
+#      security:
+#        - bearerAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/noCacheHeader'
+        - $ref: '#/components/parameters/jsonContentTypeHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutineManualTriggerCreateReq'
+      responses:
+        '200':
+          description: |
+            正常執行完成。  
+            無法手動觸發執行的狀碼碥：  
+            * 4001 排程執行中，無法手動觸發執行。
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RespBase'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RoutineManualTriggerCreateResp'
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RoutineEntity:
+      description: 系統排程，基本欄位
+      type: object
+      properties:
+        uid:
+          description: 系統排程鍵值
+          type: string
+          format: uuid
+        code:
+          description: 系統排程代碼
+          type: string
+        name:
+          description: 排程名稱
+          type: string
+        enabled:
+          description: 是否啟用。
+          type: boolean
+        setting:
+          description: 觸發條件設定
+          allOf:
+            - $ref: '#/components/schemas/RoutineSetting'
+        memo:
+          description: 備註說明
+          type: string
+    RoutineSetting:
+      description: 系統排程，觸發設定
+      type: object
+      properties:
+        useType:
+          description: 選用的觸發設定。 byTime依時間、byInterval依頻率、byCron依cron-expression
+          type: string
+          enum:
+            - byTime
+            - byInterval
+            - byCron
+        byTime:
+          description: 排程觸發條件-依指定時間(HH:mm:ss)
+          type: object
+          properties:
+            value:
+              description: 設定值
+              type: string
+        byInterval:
+          description: 排程觸發條件-依指定頻率
+          type: object
+          properties:
+            value:
+              description: 設定值
+              type: string
+            unit:
+              description: 時間單位。 sec秒、min分、hour時
+              type: string
+              enum:
+                - sec
+                - min
+                - hour
+        byCron:
+          description: 排程觸發條件-依cron-expression
+          type: object
+          properties:
+            value:
+              description: 設定值
+              type: string
+            memo:
+              description: cron-expression的備註說明
+              type: string
+    RoutineListReq:
+      description: 系統排程-查詢列表-請求參數。
+      type: object
+      properties:
+        keyword:
+          description: 關鍵字模糊查詢。對象：排程名稱。
+          type: string
+        enabled:
+          description: 狀態。是否啟用。 若無此值或值為null，代表排程此條件。
+          type: boolean
+    RoutineListResp:
+      description: 系統排程-查詢列表欄位。
+      type: object
+      properties:
+        uid:
+          description: 鍵值
+          type: string
+          format: uuid
+        code:
+          description: 系統排程代碼
+          type: string
+        name:
+          description: 排程名稱
+          type: string
+        enabled:
+          description: 是否啟用。
+          type: boolean
+        setting:
+          description: 觸發條件設定
+          type: string
+    RoutineLogBase:
+      description: 系統排程執行記錄-基本欄位。
+      type: object
+      properties:
+        routineUid:
+          description: 系統排程鍵值
+          type: string
+          format: uuid
+        startTime:
+          description: 排程開始時間
+          type: string
+          format: date-time
+        endTime:
+          description: 排程結束時間
+          type: string
+          format: date-time
+        status:
+          description: 狀態。 running執行中、success正常、failed異常。
+          type: string
+          enum:
+            - running
+            - success
+            - failed
+    RoutineLogEntity:
+      description: 系統排程執行記錄。
+      allOf:
+        - $ref: '#/components/schemas/RoutineLogBase'
+        - type: object
+          properties:
+            uid:
+              description: 系統排程-執行記錄鍵值
+              type: string
+              format: uuid
+    RoutineLogListReq:
+      description: 系統排程執行記錄-查詢列表，請求參數。
+      required:
+        - routineUid
+        - startTime
+        - endTime
+      allOf:
+        - $ref: '#/components/schemas/RoutineLogBase'
+    RoutineLogListResp:
+      description: 系統排程執行記錄-查詢列表，回應內容。
+      allOf:
+        - $ref: '#/components/schemas/RoutineLogEntity'
+    RoutineSetupGetResp:
+      description: 系統排程-觸發設定-查詢單筆，回應內容。
+      type: object
+      properties:
+        routineUid:
+          description: 系統排程鍵值
+          type: string
+          format: uuid
+        enabled:
+          description: 是否啟用
+          type: boolean
+        setting:
+          description: 觸發條件設定
+          allOf:
+            - $ref: '#/components/schemas/RoutineSetting'
+    RoutineSetupUpdateReq:
+      description: 系統排程-觸發設定-更新，請求參數。
+      type: object
+      required:
+        - routineUid
+        - enabled
+        - setting
+      properties:
+        routineUid:
+          description: 系統排程-鍵值。
+          type: string
+          format: uuid
+        enabled:
+          description: 是否啟用。
+          type: boolean
+        setting:
+          allOf:
+            - $ref: '#/components/schemas/RoutineSetting'
+    RoutineManualTriggerCreateReq:
+      description: 系統排程-手動觸發，請求參數。
+      type: object
+      required:
+        - routineUid
+      properties:
+        routineUid:
+          description: 系統排程鍵值
+          type: string
+          format: uuid
+    RoutineManualTriggerCreateResp:
+      description: 系統排程-手動觸發，回應內容。
+      allOf:
+        - $ref: '#/components/schemas/SimpleResp'
+    ResourceEntity:
+      description: 資源檔案，基本欄位。
+      type: object
+      properties:
+        uid:
+          description: 資源鍵值
+          type: string
+          format: uuid
+        name:
+          description: 資源檔案名稱
+          type: string
+        linkUrl:
+          description: 資源檔案網址
+          type: string
+    CreateResourceReq:
+      description: 建立資源檔案，請求參數。
+      required:
+        - action
+        - name
+        - dataUrl
+      type: object
+      properties:
+        action:
+          description: 執行動作。固定使用 `create`
+          type: string
+          default: create
+        name:
+          description: 資源檔案名稱。通常是檔案。
+          type: string
+        dataUrl:
+          description: 以 data-url 格式表示的檔案內容。 [RFC2397](https://datatracker.ietf.org/doc/html/rfc2397)。
+          type: string
+    DeleteResourceReq:
+      description: 建立資源檔案，請求參數。
+      required:
+        - action
+        - uid
+      type: object
+      properties:
+        action:
+          description: 執行動作。固定使用 `delete`
+          type: string
+          default: delete
+        uid:
+          description: 資源鍵值
+          type: string
+          format: uuid
+    GetResourceResp:
+      description: 查詢資源檔案，回應內容。
+      allOf:
+        - $ref: '#/components/schemas/ResourceEntity'
+    SimpleResp:
+      description: 只回應資料鍵值及名稱。
+      type: object
+      properties:
+        uid:
+          description: 鍵值
+          type: string
+          format: uuid
+        subject:
+          description: uid對應的標的的名稱
+          type: string
+    RespBase:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: |
+            錯誤代碼: 
+            * `0` : 成功
+            * `1xxx` : 參數錯誤
+            * `2xxx` : 權限不合法或資料不存在
+            * `3xxx` : 系統異常
+        message:
+          type: string
+          description: 錯誤訊息
+    KeywordCriteria:
+      description: 查詢條件：關鍵字
+      type: object
+      properties:
+        keyword:
+          description: 關鍵字
+          type: string
+    Paging:
+      description: 分頁資訊
+      type: object
+      properties:
+        offset:
+          description: 查詢分頁的 offset
+          type: integer
+        limit:
+          description: 查詢分頁的 limit
+          type: integer
+        total:
+          description: 資料總筆數
+          type: number
+    TimeRange:
+      description: 時間區間。有開始及結束時間。
+      type: object
+      properties:
+        startTime:
+          description: 開始時間
+          type: string
+          format: date-time
+        endTime:
+          description: 結束時間
+          type: string
+          format: date-time
+  parameters:
+    uidParam:
+      description: 鍵值參數
+      name: uid
+      in: query
+      required: true
+      schema:
+        type: string
+    apiKeyHeader:
+      description: 系統發佈給應用程式使用的 API Key。
+      name: X-API-Key
+      in: header
+      required: true
+      schema:
+        type: string
+    accessTokenHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema:
+        type: string
+        example: 'Bearer {accessToken}'
+    offsetParam:
+      description: 查詢分頁的 offset。與 limit 搭配使用。
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        example: 0
+    limitParam:
+      description: 查詢分頁的 limit。與 offset 搭配使用。
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        example: 20
+    noCacheHeader:
+      name: Cache-Control
+      in: header
+      required: true
+      schema:
+        type: string
+        default: no-cache
+    jsonContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        default: application/json
+  responses:
+    SimpleResponse:
+      description: 正常執行完成，並回應 uid 及 subject。
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/RespBase'
+              - type: object
+                properties:
+                  data:
+                    description: 回應資料
+                    allOf:
+                      - $ref: '#/components/schemas/SimpleResp'
+    MultiSimpleResponse:
+      description: 正常執行完成，並回應多筆 SimpleResp。
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/RespBase'
+              - type: object
+                properties:
+                  data:
+                    description: 回應資料
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SimpleResp'
+    400ErrorResponse:
+      description: 請求格式錯誤。 http status code 400。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    401ErrorResponse:
+      description: 缺少 ApiKey, AccessToken 或是驗證失敗。 http status code 401。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    403ErrorResponse:
+      description: 操作權限不足。 http status code 403。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    404ErrorResponse:
+      description: 請求的資源不存在。 http status code 404。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+    500ErrorResponse:
+      description: 伺服端錯誤。 http status code 500。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespBase'
+
