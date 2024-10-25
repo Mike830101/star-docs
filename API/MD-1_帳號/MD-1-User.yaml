@@ -11,7 +11,6 @@ info:
     * MD-3-User-Remove 帳號-刪除單筆。供管理員刪除主帳號。
     * MD-3-User-List 帳號-查詢多筆。供管理員查詢主帳號清單。
     * MD-3-User-Export 帳號-匯出excel。
-    * MD-3-User-ChangePassword 登入者帳號-變更密碼。供個人使用。
     
     ## 非200狀態回應說明
     目前定義的異常狀態如下，以下狀態於各API回應內容格式皆相同，因此各API預設只描述正常 200 的回應情況。
@@ -42,8 +41,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
         - $ref: '#/components/parameters/jsonContentTypeHeader'
-        - $ref: '#/components/parameters/idParam'
-        - $ref: '#/components/parameters/pgIdParam'
+        - $ref: '#/components/parameters/uidParam'
       responses:
         '200':
           description: 正常執行完成。
@@ -62,8 +60,7 @@ paths:
         - MD-3-User
       summary: MD-3-User-Create
       description: |
-        帳號-建立單筆。管理員可手動建立帳號。  
-        管理員建立主帳號時，不需輸入密碼。由該帳號自行透過忘記密碼來變更密碼。
+        帳號-建立單筆。管理員可手動建立帳號。
       operationId: MD-3-User-Create
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
@@ -75,7 +72,7 @@ paths:
               $ref: '#/components/schemas/UserCreateReq'
       responses:
         '200':
-          $ref: '#/components/responses/IdSimpleResponse'
+          $ref: '#/components/responses/UUIdSimpleResponse'
   /update:
     post:
       tags:
@@ -93,7 +90,7 @@ paths:
               $ref: '#/components/schemas/UserUpdateReq'
       responses:
         '200':
-          $ref: '#/components/responses/IdSimpleResponse'
+          $ref: '#/components/responses/UUIdSimpleResponse'
   /remove:
     post:
       tags:
@@ -106,19 +103,17 @@ paths:
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
         - $ref: '#/components/parameters/jsonContentTypeHeader'
-        - $ref: '#/components/parameters/idParam'
-        - $ref: '#/components/parameters/pgIdParam'
+        - $ref: '#/components/parameters/uidParam'
       responses:
         '200':
-          $ref: '#/components/responses/IdSimpleResponse'
+          $ref: '#/components/responses/UUIdSimpleResponse'
   /list:
     post:
       tags:
         - MD-3-User
       summary: MD-3-User-List
       description: | 
-        帳號-查詢多筆。供管理員查詢主帳號清單。  
-        不支援模糊援尋的查詢條件，包括：帳號、姓名。其它文字輸入類型的欄位可支援模糊援尋。
+        帳號-查詢多筆。供管理員查詢主帳號清單。
       operationId: MD-3-User-List
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
@@ -209,33 +204,23 @@ components:
         - $ref: '#/components/schemas/UserBase'
         - type: object
           properties:
-            id:
+            uid:
               description: 鍵值
               type: integer
-            lastUpdatedTime:
+            updatedTime:
               description: 最後修改時間
               type: string
               format: date-time
-            lastUpdatedUserId:
+            updatedBy:
               description: 最後修改人員之鍵值
               type: integer
-            lastUpdatedUserName:
+            updatedUserName:
               description: 最後修改人員之鍵值
               type: string
-    RoleEntity:
-      description: 角色資料欄位。
-      properties:
-        roleId:
-          description: 角色鍵值
-          type: integer
-        roleCode:
-          description: 角色代碼
-          type: string
-          maxLength: 20
-        roleName:
-          description: 角色名稱
-          type: string
-          maxLength: 100
+            lastLoginTime:
+              description: 最後登入時間
+              type: string
+              format: date-time
     UserCreateReq:
       description: 管理員建立主帳號。請求參數。
       required:
@@ -257,13 +242,25 @@ components:
       description: 查詢單筆主帳號，回應內容。
       allOf:
         - $ref: '#/components/schemas/UserEntity'
-        - $ref: '#/components/schemas/RoleEntity'
+        - type: object
+          properties:
+            roleId:
+              description: 角色鍵值
+              type: integer
+            roleCode:
+              description: 角色代碼
+              type: string
+              maxLength: 20
+            roleName:
+              description: 角色名稱
+              type: string
+              maxLength: 100
     UserUpdateReq:
       description: 管理員更新主帳號，請求參數。
       required:
-        - id
+        - uid
       properties:
-        id:
+        uid:
           description: 鍵值
           type: integer
         name:
@@ -331,6 +328,17 @@ components:
           type: integer
         subject:
           description: id對應的標的的名稱
+          type: string
+    UUIdSimpleResp:
+      description: 只回應資料鍵值及名稱。
+      type: object
+      properties:
+        uid:
+          description: 鍵值
+          type: string
+          format: uuid
+        subject:
+          description: uid對應的標的的名稱
           type: string
     SimpleResp:
       description: 只回應資料鍵值及名稱。
@@ -453,7 +461,7 @@ components:
         default: application/json
   responses:
     IdSimpleResponse:
-      description: 正常執行完成，並回應 uid 及 subject。
+      description: 正常執行完成，並回應 id 及 subject。
       content:
         application/json:
           schema:
@@ -465,6 +473,19 @@ components:
                     description: 回應資料
                     allOf:
                       - $ref: '#/components/schemas/IdSimpleResp'
+    UUIdSimpleResponse:
+      description: 正常執行完成，並回應 uid 及 subject。
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/RespBase'
+              - type: object
+                properties:
+                  data:
+                    description: 回應資料
+                    allOf:
+                      - $ref: '#/components/schemas/UUIdSimpleResp'
     SimpleResponse:
       description: 正常執行完成，並回應 uid 及 subject。
       content:
