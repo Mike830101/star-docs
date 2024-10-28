@@ -286,10 +286,10 @@ components:
       description: 查詢主帳號列表清單，回應內容。
       properties:
         account:
-          description: 帳號。不支援模糊搜尋。
+          description: 帳號。支援模糊搜尋。
           type: string
         name:
-          description: 姓名。不支援模糊搜尋。
+          description: 姓名。支援模糊搜尋。
           type: string
         roleId:
           description: 角色鍵值
@@ -300,7 +300,7 @@ components:
     UserListResp:
       description: 主帳號列表查詢，回應內容。
       properties:
-        id:
+        uid:
           description: 鍵值
           type: integer
         account:
