@@ -41,7 +41,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
         - $ref: '#/components/parameters/jsonContentTypeHeader'
-        - $ref: '#/components/parameters/idParam'
+        - $ref: '#/components/parameters/uidParam'
       responses:
         '200':
           description: 正常執行完成。
@@ -71,16 +71,14 @@ paths:
               $ref: '#/components/schemas/RoleCreateReq'
       responses:
         '200':
-          $ref: '#/components/responses/IdSimpleResponse'
+          $ref: '#/components/responses/UUIdSimpleResponse'
   /update:
     post:
       tags:
         - MD-1-Role
       summary: MD-1-Role-Update
       description: |
-        角色-更新單筆。  
-        由於權限項目很多，因此更新時應只傳送有異動的部份，避免將無異動的權限設定也送出更新。
-        預設角色無法更新code。
+        角色-更新單筆。
       operationId: MD-1-Role-Update
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
@@ -92,24 +90,23 @@ paths:
               $ref: '#/components/schemas/RoleUpdateReq'
       responses:
         '200':
-          $ref: '#/components/responses/IdSimpleResponse'
+          $ref: '#/components/responses/UUIdSimpleResponse'
   /remove:
-    post:
+    get:
       tags:
         - MD-1-Role
       summary: MD-1-Role-Remove
       description: |
         角色-刪除單筆。  
-        必須確認角色沒有被帳號使用才可被刪除。刪除時可將該角色的權限設定也一併刪除。
-        預設角色不可刪除。
+        必須確認角色沒有被帳號使用才可被刪除。
       operationId: MD-1-Role-Remove
       parameters:
         - $ref: '#/components/parameters/noCacheHeader'
         - $ref: '#/components/parameters/jsonContentTypeHeader'
-        - $ref: '#/components/parameters/idParam'
+        - $ref: '#/components/parameters/uidParam'
       responses:
         '200':
-          $ref: '#/components/responses/IdSimpleResponse'
+          $ref: '#/components/responses/UUIdSimpleResponse'
   /list:
     post:
       tags:
@@ -180,15 +177,15 @@ components:
         - $ref: '#/components/schemas/RoleBase'
         - type: object
           properties:
-            id:
+            uid:
               description: 鍵值
-              type: integer
+              type: string
+              format: uuid
     RoleCreateReq:
       description: 建立角色，請求參數
       required:
         - code
         - name
-        - showOnRegistry
       allOf:
         - $ref: '#/components/schemas/RoleBase'
         - type: object
@@ -197,36 +194,10 @@ components:
       allOf:
         - $ref: '#/components/schemas/RoleEntity'
         - type: object
-          properties:
-            default:
-              description: 是否為預設角色
-              type: boolean
-            authorities:
-              description: 角色被賦予的權限項目
-              type: array
-              items:
-                type: object
-                properties:
-                  serviceModulesUid:
-                    description: 服務模組鍵值
-                    type: string
-                    format: uuid
     RoleUpdateReq:
       description: 更新角色，請求參數
       allOf:
         - $ref: '#/components/schemas/RoleEntity'
-        - type: object
-          properties:
-            authorities:
-              description: 角色被賦予的權限項目
-              type: array
-              items:
-                type: object
-                properties:
-                  serviceModulesUid:
-                    description: 服務模組鍵值
-                    type: string
-                    format: uuid
     RoleListReq:
       description: 查詢角色列表，請求參數
       properties:
@@ -239,9 +210,10 @@ components:
     RoleListResp:
       description: 查詢角色列表，回應內容
       properties:
-        id:
+        uid:
           description: 鍵值
-          type: integer
+          type: string
+          format: uuid
         code:
           description: 角色代碼
           type: string
@@ -252,20 +224,9 @@ components:
           description: 是否啟用
           type: boolean
           default: true
-        default:
-          description: 是否為預設角色
-          type: boolean
         memo:
           description: 備註
           type: string
-        createdTime:
-          description: 建立時間
-          type: string
-          format: date-time
-        updatedTime:
-          description: 最後更新時間
-          type: string
-          format: date-time
     IdSimpleResp:
       description: 只回應資料鍵值及名稱。
       type: object
@@ -275,6 +236,17 @@ components:
           type: integer
         subject:
           description: id對應的標的的名稱
+          type: string
+    UUIdSimpleResp:
+      description: 只回應資料鍵值及名稱。
+      type: object
+      properties:
+        uid:
+          description: 鍵值
+          type: string
+          format: uuid
+        subject:
+          description: uid對應的標的的名稱
           type: string
     SimpleResp:
       description: 只回應資料鍵值及名稱。
@@ -402,6 +374,19 @@ components:
                     description: 回應資料
                     allOf:
                       - $ref: '#/components/schemas/IdSimpleResp'
+    UUIdSimpleResponse:
+      description: 正常執行完成，並回應 uid 及 subject。
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/RespBase'
+              - type: object
+                properties:
+                  data:
+                    description: 回應資料
+                    allOf:
+                      - $ref: '#/components/schemas/UUIdSimpleResp'
     SimpleResponse:
       description: 正常執行完成，並回應 uid 及 subject。
       content:
