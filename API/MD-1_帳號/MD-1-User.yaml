@@ -92,7 +92,7 @@ paths:
         '200':
           $ref: '#/components/responses/UUIdSimpleResponse'
   /remove:
-    post:
+    get:
       tags:
         - MD-3-User
       summary: MD-3-User-Remove
